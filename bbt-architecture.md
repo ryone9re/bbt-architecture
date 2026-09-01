@@ -453,4 +453,4 @@ Configuration LoaderやHTTP ServerそのものはInfrastructureが提供する�
 
 ## 9. 整合性とTransaction
 
-業務処理の整合性は、Businessの要求とTechnology
+業務処理の整合性は、Businessの要求とTechnologyの仕組
