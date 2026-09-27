@@ -157,7 +157,7 @@ HTTPリクエストには、次の順序でレイヤーを適用する。レス�
 
 削除SQLは未確定の期限切れ予約を対象にし、`FOR UPDATE SKIP LOCKED` で、他のバッチや確定処理がロック中の行を飛ばす。確定処理と削除処理が同じ予約行のロックを取得するため、一方が処理中の予約を他方が同時に変更することを防げる。
 
-実行時間の上限は、アプリケーションが45秒、SQLが10秒である。`deploy/cleanup-cronjob.yaml` は、毎分起動するKubernetes CronJobの設定例で、前のジョブが実行中なら次の起動を見送り、ジョブの実行時間を55秒に制限する。削除件数が常に `limit` に達する場合は、期限切れ予約の滞留件数とDB負荷を確認し、起動頻度や1回の削除件数を調整する。
+実行時間の上限は、アプリケーションが45秒、SQLが10秒である。`manifests/cleanup-cronjob.yaml` は、毎分起動するKubernetes CronJobの設定例で、前のジョブが実行中なら次の起動を見送り、ジョブの実行時間を55秒に制限する。削除件数が常に `limit` に達する場合は、期限切れ予約の滞留件数とDB負荷を確認し、起動頻度や1回の削除件数を調整する。
 
 ### 重量バッチによる日次集計
 
@@ -175,12 +175,12 @@ HTTPリクエストには、次の順序でレイヤーを適用する。レス�
 
 #### Argoでの実行設定
 
-`deploy/sales-workflow.yaml` には、ArgoのWorkflowTemplateと、専用のServiceAccount・Role・RoleBindingを定義している。実行にはArgoをインストールしたKubernetesクラスターを使う。Roleで付与する権限は、Argoの実行補助プロセスが結果を記録するための `workflowtaskresults` に対する `create` と `patch` に限定している（[ArgoのRBAC](https://argo-workflows.readthedocs.io/en/latest/workflow-rbac/)）。
+`manifests/sales-workflow.yaml` には、ArgoのWorkflowTemplateと、専用のServiceAccount・Role・RoleBindingを定義している。実行にはArgoをインストールしたKubernetesクラスターを使う。Roleで付与する権限は、Argoの実行補助プロセスが結果を記録するための `workflowtaskresults` に対する `create` と `patch` に限定している（[ArgoのRBAC](https://argo-workflows.readthedocs.io/en/latest/workflow-rbac/)）。
 
 ```sh
 docker build -t bbt-order-service:local .
 # イメージを実行環境に配布し、設定ファイルのimage・Secret名・Collector接続先を合わせる。
-kubectl apply -f deploy/sales-workflow.yaml
+kubectl apply -f manifests/sales-workflow.yaml
 argo submit --from workflowtemplate/bbt-rebuild-sales \
   -p from=2026-09-01 -p until=2026-09-03
 ```

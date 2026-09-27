@@ -25,7 +25,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.133.0
     command: ["--config=/etc/otelcol/config.yaml"]
-    volumes: ["./deploy/otel-collector.yaml:/etc/otelcol/config.yaml:ro"]
+    volumes: ["./manifests/otel-collector.yaml:/etc/otelcol/config.yaml:ro"]
     ports: ["127.0.0.1:14317:4317"]
     depends_on: [jaeger]
   jaeger:
