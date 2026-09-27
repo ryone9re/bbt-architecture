@@ -1,0 +1,27 @@
+name: Axum example
+on:
+  pull_request:
+    paths: ["examples/axum/**", ".github/workflows/axum-example.yml"]
+  push:
+    paths: ["examples/axum/**", ".github/workflows/axum-example.yml"]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/axum
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt, clippy
+      - run: python3 scripts/check_architecture.py
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked --workspace
+      - run: docker compose up -d --wait
+      - run: python3 scripts/smoke.py
+      - if: always()
+        run: docker compose logs --tail=100
+      - if: always()
+        run: docker compose down -v

@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: bbt-rebuild-sales
+spec:
+  serviceAccountName: bbt-workflow
+  entrypoint: rebuild
+  activeDeadlineSeconds: 3600
+  podGC: {strategy: OnPodCompletion}
+  ttlStrategy: {secondsAfterCompletion: 86400}
+  arguments:
+    parameters:
+      - name: from
+      - name: until
+      - name: traceparent
+        value: ""
+  templates:
+    - name: rebuild
+      retryStrategy:
+        limit: "3"
+        retryPolicy: OnFailure
+        backoff: {duration: 30s, factor: "2", maxDuration: 5m}
+      container:
+        image: bbt-axum:local
+        command: [rebuild-sales]
+        args: [--from, "{{workflow.parameters.from}}", --until, "{{workflow.parameters.until}}"]
+        env:
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef: {name: bbt-database, key: url}
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4317
+          - name: TRACEPARENT
+            value: "{{workflow.parameters.traceparent}}"
+        resources:
+          requests: {cpu: "1", memory: 256Mi}
+          limits: {cpu: "2", memory: 512Mi}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: [ALL]}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bbt-workflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bbt-workflow
+rules:
+  - apiGroups: [argoproj.io]
+    resources: [workflowtaskresults]
+    verbs: [create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bbt-workflow
+subjects:
+  - kind: ServiceAccount
+    name: bbt-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: bbt-workflow
