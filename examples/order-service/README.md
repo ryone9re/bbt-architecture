@@ -6,7 +6,7 @@
 
 ## ローカル環境での起動と操作
 
-起動にはRust 1.94以上とDocker Composeを使用する。検証スクリプトの実行にはPython 3.9以上も必要になる。以下のコマンドは `examples/order-service` ディレクトリで実行する。
+起動と検証にはRust 1.94以上とDocker Composeを使用する。以下のコマンドは `examples/order-service` ディレクトリで実行する。
 
 ```sh
 cp .env.example .env
@@ -89,15 +89,7 @@ flowchart TD
 
 Cargoワークスペースには14個のパッケージがあり、それぞれの `Cargo.toml` で依存先を宣言する。4つのAppは個別のパッケージに配置し、`[[bin]]` で実行ファイルを定義している。この分割により、Appごとに必要な依存を選べる。例えば `cleanup` の依存には、HTTPサーバーやキャッシュのcrateを含めていない。
 
-依存方向の規則は、`scripts/check_architecture.py` で検査する。Cargoは宣言された依存関係に従ってビルドするが、その関係がBBTの規則に合うかまでは判断しない。このスクリプトはCargoのメタデータを調べ、次の違反をCIで検出する。
-
-- Businessから他領域への依存、および許可リストにない外部ライブラリへの依存
-- InfrastructureからBusiness・Boundary・Appsへの依存
-- Entry PointとIntegrationの相互依存
-- Appsへの依存、ワークスペース外のパス依存、分類できないcrateの追加
-- Appsへのライブラリターゲットの追加
-
-検査には、開発用・ビルド用・オプション指定・特定のターゲット向けの依存も含む。Businessで許可している外部ライブラリは `async-trait`、`chrono`、`thiserror`、`uuid` で、HTTP・DB・キャッシュ・OTelに固有の型をBusinessへ持ち込まない構成にしている。
+各crateが直接参照できる外部crateは、`Cargo.toml` に宣言した依存先に限られる。Businessの依存先は `async-trait`、`chrono`、`thiserror`、`uuid` とし、HTTP・DB・キャッシュ・OTelを扱うcrateへの依存は宣言していない。Cargoはこの宣言に従って参照を制限する。依存先を追加するときは、上の依存図に沿っているかを確認する。
 
 Businessの公開APIには、用途の異なる操作とtraitがある。Entry Pointは業務操作を呼び出すInbound APIを使い、IntegrationはBusinessが外部へ求める機能を定義したOutbound APIのtraitを実装する。Appsは生成・組み立て用のComposition APIを使う。ただし、同じBusiness crate内の公開APIについては、呼び出し元の領域ごとにアクセスを制限していない。
 
@@ -214,17 +206,18 @@ Jaegerでは、サービス名 `bbt-server`、`bbt-cleanup`、`bbt-rebuild-sales
 ## 自動検証の実行方法と範囲
 
 ```sh
-python3 scripts/check_architecture.py
 cargo fmt --all -- --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 cargo test --locked --workspace
 docker compose up -d --wait
-python3 scripts/smoke.py
+cargo test --locked -p app-server --test smoke -- --ignored --nocapture
 ```
 
-`scripts/smoke.py` は、Composeで起動したDBへ検証データを登録し、ポート13000でサーバーを起動する。検証中はValkeyを一時停止するため、このサンプル専用の環境で実行する。過去の日付の集計に使うデータは、DBの確定日時を直接書き換えて用意する。
+`apps/server/tests/smoke.rs` は、HTTP通信とDB・Valkeyへの接続、各binの起動をRustから行う統合テストである。通常の `cargo test` では実行せず、`--ignored` を指定したときに実行する。SIGTERMによる終了も確認するため、macOSまたはLinuxで実行する。
 
-スクリプトでは、次の動作を実際のHTTPリクエストとバッチ実行で確認する。
+このテストはComposeで起動したDBへ検証データを登録し、ポート13000でサーバーを起動する。検証中はValkeyを一時停止するため、このサンプル専用の環境で実行する。過去の日付の集計に使うデータは、DBの確定日時を直接書き換えて用意する。
+
+統合テストでは、次の動作を実際のHTTPリクエストとバッチ実行で確認する。
 
 - 認証情報や入力値に応じたHTTP応答を返す。
 - 同じ予約を8件のリクエストで並行して確定すると、同じ注文を返す。
@@ -234,7 +227,7 @@ python3 scripts/smoke.py
 - 呼び出し元のトレース情報を引き継ぎ、Jaegerに親子関係を記録する。
 - サーバーがSIGTERMを受け取ると正常終了する。
 
-CIにも同じ検証手順を定義している。SQLにはSQLxの実行時クエリAPIを使っており、コンパイル時にDBへ接続したり、`.sqlx` のクエリ情報を生成したりする必要はない。テーブル定義とSQLの組合せは、実DBに対する検証で確かめる。
+SQLにはSQLxの実行時クエリAPIを使っており、コンパイル時にDBへ接続したり、`.sqlx` のクエリ情報を生成したりする必要はない。テーブル定義とSQLの組合せは、実DBに対する検証で確かめる。
 
 KubernetesのCronJobとArgoのWorkflowTemplateは配置用の設定例であり、クラスター上での実行は未検証である。
 
