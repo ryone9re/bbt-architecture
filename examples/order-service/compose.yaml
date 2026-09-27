@@ -1,0 +1,35 @@
+name: bbt-order-service
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bbt
+      POSTGRES_PASSWORD: bbt
+      POSTGRES_DB: bbt
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bbt -d bbt"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports: ["127.0.0.1:16379:6379"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.133.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes: ["./manifests/otel-collector.yaml:/etc/otelcol/config.yaml:ro"]
+    ports: ["127.0.0.1:14317:4317"]
+    depends_on: [jaeger]
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    ports: ["127.0.0.1:16686:16686"]
+volumes:
+  postgres-data:
