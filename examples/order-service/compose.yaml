@@ -1,4 +1,4 @@
-name: bbt-axum
+name: bbt-order-service
 services:
   postgres:
     image: postgres:17-alpine

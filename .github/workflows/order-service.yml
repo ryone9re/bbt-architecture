@@ -1,15 +1,15 @@
-name: Axum example
+name: Order service example
 on:
   pull_request:
-    paths: ["examples/axum/**", ".github/workflows/axum-example.yml"]
+    paths: ["examples/order-service/**", ".github/workflows/order-service.yml"]
   push:
-    paths: ["examples/axum/**", ".github/workflows/axum-example.yml"]
+    paths: ["examples/order-service/**", ".github/workflows/order-service.yml"]
 jobs:
   verify:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: examples/axum
+        working-directory: examples/order-service
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.98.1

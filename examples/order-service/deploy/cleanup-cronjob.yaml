@@ -24,7 +24,7 @@ spec:
             seccompProfile: {type: RuntimeDefault}
           containers:
             - name: cleanup
-              image: bbt-axum:local
+              image: bbt-order-service:local
               command: [cleanup, --limit, "1000"]
               env:
                 - name: DATABASE_URL

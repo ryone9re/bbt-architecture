@@ -21,7 +21,7 @@ spec:
         retryPolicy: OnFailure
         backoff: {duration: 30s, factor: "2", maxDuration: 5m}
       container:
-        image: bbt-axum:local
+        image: bbt-order-service:local
         command: [rebuild-sales]
         args: [--from, "{{workflow.parameters.from}}", --until, "{{workflow.parameters.until}}"]
         env:

@@ -1,4 +1,4 @@
-# AxumによるBBT Architectureの実装例
+# Order Service — BBT Architectureによる注文管理サービス
 
 注文の予約・確定、期限切れ予約の削除、日次の注文額の集計を行うアプリケーションである。注文データはPostgreSQLに保存し、確定済み注文の参照にはValkeyとプロセス内キャッシュを使う。APIとバッチの処理はOpenTelemetry（OTel）で記録し、OTel Collector経由でJaegerに送信する。
 
@@ -6,7 +6,7 @@
 
 ## ローカル環境での起動と操作
 
-起動にはRust 1.94以上とDocker Composeを使用する。検証スクリプトの実行にはPython 3.9以上も必要になる。以下のコマンドは `examples/axum` ディレクトリで実行する。
+起動にはRust 1.94以上とDocker Composeを使用する。検証スクリプトの実行にはPython 3.9以上も必要になる。以下のコマンドは `examples/order-service` ディレクトリで実行する。
 
 ```sh
 cp .env.example .env
@@ -186,7 +186,7 @@ HTTPリクエストには、次の順序でレイヤーを適用する。レス�
 `deploy/sales-workflow.yaml` には、ArgoのWorkflowTemplateと、専用のServiceAccount・Role・RoleBindingを定義している。実行にはArgoをインストールしたKubernetesクラスターを使う。Roleで付与する権限は、Argoの実行補助プロセスが結果を記録するための `workflowtaskresults` に対する `create` と `patch` に限定している（[ArgoのRBAC](https://argo-workflows.readthedocs.io/en/latest/workflow-rbac/)）。
 
 ```sh
-docker build -t bbt-axum:local .
+docker build -t bbt-order-service:local .
 # イメージを実行環境に配布し、設定ファイルのimage・Secret名・Collector接続先を合わせる。
 kubectl apply -f deploy/sales-workflow.yaml
 argo submit --from workflowtemplate/bbt-rebuild-sales \
