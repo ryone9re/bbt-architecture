@@ -1,0 +1,16 @@
+[package]
+name = "entry-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+business.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+clap.workspace = true
+tracing.workspace = true
